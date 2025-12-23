@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Login Diagnostic Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .result {
+            background: white;
+            padding: 15px;
+            margin-top: 10px;
+            border-left: 4px solid #4CAF50;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        .error {
+            border-left-color: #f44336;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 14px;
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Login Diagnostic Test</h1>
+
+    <div class="test-section">
+        <h2>Step 1: Clear Old Data</h2>
+        <button onclick="clearStorage()">Clear LocalStorage</button>
+        <div id="clear-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 2: Test OTP Verification</h2>
+        <div>
+            <input type="text" id="phone" placeholder="Phone (+919876543210)" value="+919876543210">
+            <input type="text" id="otp" placeholder="OTP" value="884280">
+        </div>
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 3: Check Token</h2>
+        <button onclick="checkToken()">Check Token in LocalStorage</button>
+        <div id="token-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 4: Manual Redirect</h2>
+        <button onclick="redirectToDashboard()">Go to Dashboard</button>
+    </div>
+
+    <script>
+        function clearStorage() {
+            const result = document.getElementById('clear-result');
+            result.style.display = 'block';
+
+            const before = {
+                partnerToken: localStorage.getItem('partnerToken'),
+                token: localStorage.getItem('token'),
+                authToken: localStorage.getItem('authToken')
+            };
+
+            localStorage.clear();
+
+            result.textContent = 'BEFORE CLEAR:\n' + JSON.stringify(before, null, 2) + '\n\nAFTER CLEAR:\nLocalStorage is now empty ✅';
+        }
+
+        async function testLogin() {
+            const result = document.getElementById('login-result');
+            result.style.display = 'block';
+            result.classList.remove('error');
+
+            const phone = document.getElementById('phone').value;
+            const otp = document.getElementById('otp').value;
+
+            try {
+                result.textContent = '🔄 Calling API...\n';
+
+                const response = await fetch('http://localhost:5000/api/auth/partner/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber: phone, otp })
+                });
+
+                const data = await response.json();
+
+                result.textContent += '\n✅ API Response:\n' + JSON.stringify(data, null, 2);
+
+                if (data.success && data.token) {
+                    result.textContent += '\n\n💾 Storing token...';
+                    localStorage.setItem('partnerToken', data.token);
+
+                    const stored = localStorage.getItem('partnerToken');
+                    result.textContent += '\n✅ Token stored: ' + (stored ? 'YES' : 'NO');
+                    result.textContent += '\n📏 Token length: ' + (stored ? stored.length : 0);
+                    result.textContent += '\n🔑 Token preview: ' + (stored ? stored.substring(0, 50) + '...' : 'N/A');
+                } else {
+                    result.classList.add('error');
+                    result.textContent += '\n\n❌ No token in response!';
+                }
+
+            } catch (error) {
+                result.classList.add('error');
+                result.textContent = '❌ ERROR:\n' + error.message + '\n\n' + error.stack;
+            }
+        }
+
+        function checkToken() {
+            const result = document.getElementById('token-result');
+            result.style.display = 'block';
+
+            const token = localStorage.getItem('partnerToken');
+
+            if (token) {
+                result.classList.remove('error');
+                result.textContent = '✅ Token EXISTS in localStorage!\n\n';
+                result.textContent += 'Length: ' + token.length + '\n';
+                result.textContent += 'Preview: ' + token.substring(0, 100) + '...\n\n';
+                result.textContent += 'Full token:\n' + token;
+            } else {
+                result.classList.add('error');
+                result.textContent = '❌ NO TOKEN in localStorage\n\n';
+                result.textContent += 'All localStorage keys:\n' + JSON.stringify(Object.keys(localStorage), null, 2);
+            }
+        }
+
+        function redirectToDashboard() {
+            const token = localStorage.getItem('partnerToken');
+            if (!token) {
+                alert('No token found! Run Step 2 first.');
+                return;
+            }
+
+            console.log('Redirecting to dashboard with token:', token.substring(0, 20) + '...');
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+
+</html>

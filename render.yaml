@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: urban-partner-app
+    env: static
+    repo: https://github.com/your-username/super-app-repo  # Replace with your GitHub repo
+    rootDir: super_app-main/urban-partner-app
+    buildCommand: npm run build
+    publishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://superapp-backend.onrender.com/api
+    plan: free
+    autoDeploy: true
